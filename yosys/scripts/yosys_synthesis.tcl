@@ -140,7 +140,7 @@ yosys dfflibmap {*}$tech_cells_args
 
 # then perform bit-level optimization and mapping on all combinational clouds in ABC
 # target period (per optimized block/module) in picoseconds
-set period_ps 20000
+set period_ps 12500
 # pre-process abc file (written to tmp directory)
 set abc_comb_script   [processAbcScript scripts/abc-opt.script]
 # call ABC

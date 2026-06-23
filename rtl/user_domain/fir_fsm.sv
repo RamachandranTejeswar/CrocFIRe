@@ -133,7 +133,7 @@ module fir_fsm #(
 
     // ******************** Progress Tracking Variables ********************
 
-    logic [15:0] num_samples_d, num_samples_q;              // Will never exceed 255 (0 - 255)
+    logic [15:0] num_samples_d, num_samples_q;              // Will never exceed 540 (0 - 540)
     logic [31:0] base_addr_q;                               // Hard Coded 0x2000_2028 (Leaving the first 10 words for MM-Registers)
     logic [31:0] curr_addr_d, curr_addr_q;                  // Current Read Address on Data SRAM
     logic [15:0] samples_remaining_d, samples_remaining_q;  // Number of Samples remaining to be read
@@ -230,7 +230,7 @@ module fir_fsm #(
         case (state_q)
 
             IDLE: begin
-                if(start_q && (num_samples_q >= 36) && (num_samples_q <= 512)) begin
+                if(start_q && (num_samples_q >= 36) && (num_samples_q <= 540)) begin
                     state_d = READ_DATA;
                     curr_addr_d = base_addr_q;              // Start reading from here on Data SRAM
                     samples_remaining_d = num_samples_q;    // Total number of samples to be read
@@ -240,7 +240,7 @@ module fir_fsm #(
                     stall_count_d = (NumMacs == 32) ? 2'd3 : 2'd1;                   
                 end
 
-                if(start_q && (num_samples_q < 36 || (num_samples_q > 512))) begin
+                if(start_q && (num_samples_q < 36 || (num_samples_q > 540))) begin
                     invalid_len_d = 1'b1;  // set error flag
                 end
             end

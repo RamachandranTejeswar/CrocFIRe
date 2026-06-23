@@ -54,6 +54,21 @@ repair_tie_fanout $tieLoPin
 utl::report "Remove buffers"
 remove_buffers
 
+# Targeted padding for M1 spacing fix
+set_placement_padding -instances [get_cells {i_croc_soc/i_croc/i_dmi_jtag/i_dmi_cdc.i_cdc_resp/i_cdc_reset_ctrlr/i_cdc_reset_ctrlr_half_a/i_state_transition_cdc_src/_11_}] -left 1 -right 1
+
+set_placement_padding -instances [get_cells {
+    i_croc_soc/i_croc/_7636_
+    i_croc_soc/i_croc/_7634_
+    i_croc_soc/i_croc/_7681_
+    i_croc_soc/i_croc/_7679_
+    i_croc_soc/i_croc/i_dm_top.i_dm_top/_4686_
+    i_croc_soc/i_croc/i_dm_top.i_dm_top/_4658_
+    i_croc_soc/i_croc/i_dm_top.i_dm_top/_3606_
+    i_croc_soc/i_croc/i_dm_top.i_dm_top/_3506_
+    i_croc_soc/i_croc/i_dm_top.i_dm_top/_3503_
+}] -left 1 -right 1
+
 utl::report "Repair design"
 repair_design -verbose
 

@@ -32,8 +32,8 @@ set_driving_cell [all_inputs] -lib_cell sg13cmos5l_IOPadOut16mA -pin pad
 ##################
 puts "Clocks..."
 
-# We target 100 MHz
-set TCK_SYS 10.0
+# We target 80 MHz
+set TCK_SYS 12.5
 create_clock -name clk_sys -period $TCK_SYS [get_ports clk_i]
 
 set TCK_JTG 25.0

@@ -26,14 +26,14 @@ set JTAG            $CROC/i_dmi_jtag
 set SRAM_512x32     gen_512x32xBx1.i_cut
 
 # memory banks
-set sram {\[0\].i_sram/}
+set sram {\[2\].i_sram/}
 set bank0_sram0 $SRAM$sram$SRAM_512x32
-set sram {\[1\].i_sram/}
+set sram {\[0\].i_sram/}
 set bank1_sram0 $SRAM$sram$SRAM_512x32
 
-set sram {\[2\].i_sram/}
-set bank2_sram0 $SRAM$sram$SRAM_512x32
 set sram {\[3\].i_sram/}
+set bank2_sram0 $SRAM$sram$SRAM_512x32
+set sram {\[1\].i_sram/}
 set bank3_sram0 $SRAM$sram$SRAM_512x32
 
 # JTAG request and response CDCs
