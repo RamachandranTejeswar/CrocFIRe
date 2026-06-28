@@ -18,12 +18,12 @@
 #define IDMA_BASE_ADDR      0x0300B000
 #define USER_ROM_BASE_ADDR  0x20000000
 
-// Added by me
-#define SIGNAL_BASE_ADDR 0x10001100
-#define SRAM_READ_ADDRESS 0x10001900
+// Additional SRAM Banks for storing Data Samples and Results
+#define SIGNAL_BASE_ADDR 0x10001000
+#define SRAM_READ_ADDRESS 0x10001800
 
 // Frequencies
-#define TB_FREQUENCY        20000000
+#define TB_FREQUENCY        80000000
 #define TB_BAUDRATE         115200
 
 // Peripheral configs

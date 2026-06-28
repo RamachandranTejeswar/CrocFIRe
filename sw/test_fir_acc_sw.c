@@ -4,18 +4,43 @@
 #include "print.h"
 #include "util.h"
 #include "config.h"
+ 
+ /* =========================================================
+ * FIR Filter Software Implementation - Croc SoC
+ * =========================================================
+ * This file implements a 32-tap FIR filter entirely in
+ * software on the CVE2 RISC-V core, without using the
+ * hardware multiplier or the FIR accelerator.
+ *
+ * By default, CVE2 is compiled WITHOUT the hardware
+ * multiplier extension (RV32I only). All multiply operations
+ * in fir_filter() are emulated via repeated additions by
+ * the compiler, resulting in higher cycle counts.
+ *
+ * To enable the hardware multiplier (RV32IM):
+ *   1. In the Makefile, change:
+ *        RISCV_MARCH = rv32i_zicsr
+ *      to:
+ *        RISCV_MARCH = rv32im_zicsr
+ *   2. In core_wrap.sv, change:
+ *        .RV32M(ibex_pkg::RV32MNone)
+ *      to:
+ *        .RV32M(ibex_pkg::RV32MFast)
+ *   3. Rerun Verilator: make clean && make sim
+ *   4. Recompile SW:    make clean && make compile
+ *
+ * This allows direct comparison of three implementations:
+ *   - SW without HW multiplier (this file, RV32I)
+ *   - SW with HW multiplier    (this file, RV32IM)
+ *   - HW Accelerator           (test_fir_acc_hw.c)
+ * ========================================================= */
 
-#define SRAM_READ_ADDRESS 0x10001900
-
+#define SRAM_READ_ADDRESS 0x10001800
 #define NUM_TAPS     32
 
-
-int8_t coeffs[NUM_TAPS] = {
-     1,  2,  3,  4,  5,  6,  7,  8,
-     9, 10, 11, 12, 13, 14, 15, 16,
-    16, 15, 14, 13, 12, 11, 10,  9,
-     8,  7,  6,  5,  4,  3,  2,  1
-};
+/* =========================================================
+ * Signal Samples
+ * ========================================================= */
 
 int8_t signal[] = {
      -71, -116,   12,   -3,  -14,  -57,  -76,  -84,
@@ -88,23 +113,55 @@ int8_t signal[] = {
       18,  -77,   60,  -39                        
 };
 
-uint32_t signal_len = sizeof(signal) / sizeof(signal[0]);
+/* =========================================================
+ * FIR Filter Coefficients (integer, pre-normalization)
+ * ========================================================= */
 
-int8_t  buffer[NUM_TAPS] = {0};
-int     buf_index = 0;
-int8_t coeffs_q07[NUM_TAPS];
-int32_t coeff_sum = 0;
+int8_t coeffs[NUM_TAPS] = {
+     1,  2,  3,  4,  5,  6,  7,  8,
+     9, 10, 11, 12, 13, 14, 15, 16,
+    16, 15, 14, 13, 12, 11, 10,  9,
+     8,  7,  6,  5,  4,  3,  2,  1
+};
+
+/* =========================================================
+ * Global Variables
+ * ========================================================= */
+
+uint32_t signal_len = sizeof(signal) / sizeof(signal[0]);
+int8_t   buffer[NUM_TAPS] = {0};
+int      buf_index = 0;
+int8_t   coeffs_q07[NUM_TAPS];
+int32_t  coeff_sum = 0;
+
+/* =========================================================
+ * Global Variables
+ * ========================================================= */
+uint32_t signal_len = sizeof(signal) / sizeof(signal[0]);	/* Length of the array containing signal samples */
+int8_t   buffer[NUM_TAPS] = {0};  							/* Circular buffer for SW FIR       */
+int      buf_index  = 0;          							/* Circular buffer write pointer     */
+int8_t   coeffs_q07[NUM_TAPS];    							/* Q0.7 normalized coefficients      */
+int32_t  coeff_sum  = 0;          							/* Sum of coefficients for Q0.7 norm */
+
+/* =========================================================
+ * FIR Filter - Single sample computation
+ * Uses circular buffer + Q0.7 fixed-point arithmetic
+ * ========================================================= */
 
 int32_t fir_filter(int8_t new_sample)
 {
+	/* Insert new sample into circular buffer */
     buffer[buf_index] = new_sample;
     buf_index = (buf_index + 1) % NUM_TAPS;
 
+	/* Accumulate MAC results across all taps */
     int32_t acc = 0;
     for(int i = 0; i < NUM_TAPS; i++) {
         int tap_index = (buf_index + i) % NUM_TAPS;
         acc += (int32_t)coeffs_q07[i] * (int32_t)buffer[tap_index];
     }
+    
+    /* Right shift by 7 to account for Q0.7 coefficient scaling */
     return acc>>7;
 }
 
@@ -114,6 +171,11 @@ int main()
     uint32_t t0, t1;
 
     t0 = get_mcycle();
+    
+    /* -------------------------------------------------------
+     * Step 1: Normalize coefficients to Q0.7 fixed-point
+     *         and run SW FIR across all signal samples
+     * ------------------------------------------------------- */
     for (int i = 0; i < NUM_TAPS; i++) coeff_sum += coeffs[i];
 
     for (int i = 0; i < NUM_TAPS; i++)
@@ -121,6 +183,9 @@ int main()
         coeffs_q07[i] = (int8_t)((coeffs[i] * 128 + coeff_sum/2) / coeff_sum);
     }
 
+    /* -------------------------------------------------------
+     * Step 2: Run SW FIR and write results to SRAM Bank 3
+     * ------------------------------------------------------- */
     for(int n = 0; n < signal_len; n++) {
         int32_t result = fir_filter(signal[n]);
         if (n >= NUM_TAPS - 1) {
@@ -129,6 +194,9 @@ int main()
     }
     t1 = get_mcycle();
 
+    /* -------------------------------------------------------
+     * Step 3: Print last 5 results
+     * ------------------------------------------------------- */
     int start = (signal_len - NUM_TAPS >= 5) ? (signal_len - NUM_TAPS - 4) : 0;
     for (int i = start; i < (signal_len - NUM_TAPS + 1); i++) {
         uint32_t result = *reg32(SRAM_READ_ADDRESS, i * 4);

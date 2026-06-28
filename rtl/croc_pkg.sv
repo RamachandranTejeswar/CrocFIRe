@@ -90,8 +90,8 @@ package croc_pkg;
     '{ idx: XbarUser,    start_addr: 32'h2000_0000, end_addr: 32'h8000_0000 },
     '{ idx: XbarBank0,   start_addr: 32'h1000_0000, end_addr: 32'h1000_0800 },
     '{ idx: XbarBank0+1, start_addr: 32'h1000_0800, end_addr: 32'h1000_1000 },
-    '{ idx: XbarBank0+2, start_addr: 32'h1000_1100, end_addr: 32'h1000_1900 },
-    '{ idx: XbarBank0+3, start_addr: 32'h1000_1900, end_addr: 32'h1000_2100 }
+    '{ idx: XbarBank0+2, start_addr: 32'h1000_1000, end_addr: 32'h1000_1800 },
+    '{ idx: XbarBank0+3, start_addr: 32'h1000_1800, end_addr: 32'h1000_2000 }
   };
 
   // +1 for additional OBI error

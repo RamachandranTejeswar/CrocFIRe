@@ -154,7 +154,7 @@ module fir_fsm #(
     always_ff @(posedge clk_i or negedge rst_ni) begin
         if (!rst_ni) begin
             // num_samples_q  <= 64;                        // Initial test with 64 samples
-            base_addr_q    <= 32'h1000_1100;                // Data to be stored from 0x1000_0800 on Data SRAM
+            base_addr_q    <= 32'h1000_1000;                // Data to be stored from 0x1000_0800 on Data SRAM
         end else begin
         // nothing needed here since FF macro handles the rest
         end
@@ -234,7 +234,7 @@ module fir_fsm #(
                     state_d = READ_DATA;
                     curr_addr_d = base_addr_q;              // Start reading from here on Data SRAM
                     samples_remaining_d = num_samples_q;    // Total number of samples to be read
-                    out_addr_d  = 32'h1000_1900;            // initialize output address once here
+                    out_addr_d  = 32'h1000_1800;            // initialize output address once here
                     done_o = 1'b0;
                     done_check_d = 1'b0;
                     stall_count_d = (NumMacs == 32) ? 2'd3 : 2'd1;                   

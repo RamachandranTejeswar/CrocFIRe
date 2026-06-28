@@ -58,6 +58,11 @@ remove_buffers
 set_placement_padding -instances [get_cells {i_croc_soc/i_croc/i_dmi_jtag/i_dmi_cdc.i_cdc_resp/i_cdc_reset_ctrlr/i_cdc_reset_ctrlr_half_a/i_state_transition_cdc_src/_11_}] -left 1 -right 1
 
 set_placement_padding -instances [get_cells {
+    i_croc_soc/i_croc/i_dmi_jtag/i_dmi_cdc.i_cdc_resp/i_cdc_reset_ctrlr/i_cdc_reset_ctrlr_half_b/i_state_transition_cdc_src/_11_
+    i_croc_soc/i_croc/i_dmi_jtag/i_dmi_cdc.i_cdc_resp/i_cdc_reset_ctrlr/i_cdc_reset_ctrlr_half_b/i_state_transition_cdc_src/async_data_o[0]_reg
+}] -left 1 -right 1
+
+set_placement_padding -instances [get_cells {
     i_croc_soc/i_croc/_7636_
     i_croc_soc/i_croc/_7634_
     i_croc_soc/i_croc/_7681_

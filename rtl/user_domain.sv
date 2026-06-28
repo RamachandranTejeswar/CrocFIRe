@@ -128,7 +128,7 @@ module user_domain import user_pkg::*; import croc_pkg::*; #(
     .mgr_obi_req_t( mgr_obi_req_t ),
     .mgr_obi_rsp_t( mgr_obi_rsp_t ),
     .NumTaps      ( 32             ),
-    .NumMacs      ( 16   )
+    .NumMacs      ( 4   )
   ) i_user_fir_acc (
     .clk_i         ( clk_i               ),
     .rst_ni        ( rst_ni              ),
