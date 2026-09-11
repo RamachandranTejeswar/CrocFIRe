@@ -1,17 +1,26 @@
-# Croc System-on-Chip
+# FIR Filter Accelerator
 
-A simple SoC for education using PULP IPs. Croc includes all scripts necessary to produce a nearly finished chip in [IHPs open-source 130nm technology](https://github.com/IHP-GmbH/IHP-Open-PDK/tree/main).
+This project focuses on the design, integration and physical implementation of a hardware-accelerated 32-tap FIR Filter Accelerator on the Croc SoC, developed as a part of the VLSI II course at ETH Zurich. The baseline design was extended by integrating a parameterizable FIR filter accelerator into the user domain, supporting 1, 2, 4, 8 and 16 parallel MAC units. The accelerator implements a blocked FIR architecture operating on signed 8-bit signal samples with Q0.7 fixed-point coefficients, communicating with the Croc using the Open Bus Interface (OBI). The repository covers the RTL design, verification, testing, and the backend physical implementation, culminating in a DRC-free tape out ready chip.
 
-As it is oriented towards education, it forgoes some configurability to increase readability of the RTL and scripts.
+![Chip module view](doc/Final_Chip.png)
 
-Croc is developed as part of the PULP project, a joint effort between ETH Zurich and the University of Bologna.
+For a detailed discussion of the architecture, design trade-offs and PPA analysis across the 1/2/4/8/16 MAC configurations, see the [CrocFIRe Design Report](CrocFIRe_Design_Report.pdf).
 
-Croc was successfully taped out in Nov 2024 in the chip [MLEM](http://asic.ee.ethz.ch/2024/MLEM.html), named after the sound Yoshi makes when eating a tasty fruit. MLEM's core functionality was verified on real silicon early 2026.  
-MLEM was designed and prepared for tapeout by ETHZ students as a bachelor project. The exact code and scripts used for the tapeout can be seen in the frozen [mlem-tapeout](https://github.com/pulp-platform/croc/tree/mlem-tapeout) branch.
 
-## Architecture
+## FIR Accelerator Integration with Croc System-on-Chip
 
-![Croc block diagram](doc/croc_arch.svg)
+
+Croc is a simple SoC for education using PULP IPs developed as part of the PULP project, a joint effort between ETH Zurich and the University of Bologna. Croc includes all scripts necessary to produce a nearly finished chip in [IHPs open-source 130nm technology](https://github.com/IHP-GmbH/IHP-Open-PDK/tree/main).
+
+For more information on the Croc SoC, the exact code and scripts can be found at: https://github.com/pulp-platform/croc
+
+![Croc SoC with FIR Filter Accelerator](doc/Top_Level_Block_Diagram.png)
+
+The figure above shows the updated Croc SoC architecture with the FIR accelerator integrated into the user domain. The accelerator interfaces with the rest of the SoC through two OBI ports. The subordinate (SBR) OBI port allows the CVE2 core to configure the accelerator by writing to its memory-mapped registers, including the number of input samples, filter coefficients, and the start signal, and to poll the done status register upon completion. The manager (MGR) OBI port allows the accelerator to autonomously fetch signal samples from SRAM Bank 2 and write computed results to SRAM Bank 3, without CPU involvement after initial configuration. Within the user domain, an address decoder distributes incoming transactions to the FIR accelerator, the User ROM, or a default error subordinate for unmapped accesses.
+
+## FIR Filter Accelerator Architecture
+
+![FIR Filter Accelerator Architecture](doc/fir_filter_accelerator_arch.png)
 
 The SoC is composed of two main parts:
 
@@ -23,53 +32,45 @@ The main interconnect is OBI, you can find [the spec online](https://github.com/
 The various IPs of the SoC (UART, OBI, debug-module, timer...) come from other PULP repositories and are managed by [Bender](https://github.com/pulp-platform/bender).
 To make it easier to browse and understand, only used or important building blocks are included in `rtl/<IP>`. You may want to explore the repositories of the respective IPs to find their documentation or additional functionality, the urls are in `Bender.yml`.
 
-## Configuration
-
-The main SoC configurations are in `rtl/croc_pkg.sv`:
-
-| Parameter           | Default          | Function                                              |
-|---------------------|------------------|-------------------------------------------------------|
-| `PulpJtagIdCode`    | `32'h1C0C_5DB3`  | Debug module ID code                                  |
-| `iDMAEnable`        | `0`              | Enable optional DMA (see `rtl/idma`)                  |
-| `NumSramBanks`      | `2`              | Number of memory banks                                |
-| `SramBankNumWords`  | `512`            | Number of 32bit words in a memory bank                |
-| `BootAddr`          | `32'h1000_0000`  | Default boot address set in 'soc_ctrl' register       |
-| `CrocAddrMap`       | see 'Memory Map' | Routing rules used for the main crossbar              |
-| `PeriphAddrMap`     | see 'Memory Map' | Routing rules used for the peripheral demuliplexer    |
-
-Further configurations can be made in `rtl/core_wrap.sv` (core specifics) and `rtl/croc_soc.sv` (connectivity between domains and to/from outside).
-
-The SRAMs are instantiated via a technology wrapper called `tc_sram_impl` (tc: tech_cells), the technology-independent implementation is in `rtl/tech_cells_generic/tc_sram_impl.sv`. A number of SRAM configurations are implemented using IHP130 SRAM memories in `ihp13/tc_sram_impl.sv`. If an unimplemented SRAM configuration is instantiated it will result in a `tc_sram_blackbox` module which can then be easily identified from the synthesis results.
-
 ## Bootmodes
 
 Currently the only way to boot is via JTAG.
 
 ## Memory Map
 
-If possible, the memory map should remain compatible with [Cheshire's memory map](https://pulp-platform.github.io/cheshire/um/arch/#memory-map).  
-Further each new subordinate should occupy multiples of 4KB of the address space (`32'h0000_1000`).
+The table below presents the complete SoC memory map including both the original Croc peripherals and the
+additions made in this project. Two additional SRAM banks were added to support the accelerator: Bank 2
+at 0x10001000 to 0x10001800 for input signal samples and Bank 3 at 0x10001800 to 0x10002000 for computed output results. The FIR accelerator’s Memory-Mapped (MM) registers are accessible at 0x20000400,
+and the User ROM at 0x20000000.
 
-The address map of the default configuration is as follows:
+| Start Address   | Stop Address    | Description                                    |
+| --------------- | --------------- | ---------------------------------------------- |
+| `32'h0000_0000` | `32'h0004_0000` | Debug module (JTAG)                            |
+| `32'h0200_0000` | `32'h0200_4000` | BootROM                                        |
+| `32'h0204_0000` | `32'h0208_0000` | CLINT peripheral                               |
+| `32'h0300_0000` | `32'h0300_1000` | SoC control/info registers                     |
+| `32'h0300_2000` | `32'h0300_3000` | UART peripheral                                |
+| `32'h0300_5000` | `32'h0300_6000` | GPIO peripheral                                |
+| `32'h0300_A000` | `32'h0300_B000` | Timer peripheral                               |
+| `32'h0300_B000` | `32'h0300_C000` | (optional) DMA configuration                   |
+| `32'h1000_0000` | `32'h1000_0800` | SRAM Bank 0                                    |
+| `32'h1000_0800` | `32'h1000_1000` | SRAM Bank 1                                    |
+| `32'h1000_1000` | `32'h1000_1800` | SRAM Bank 2 (For storing signal samples)       |
+| `32'h1000_1800` | `32'h1000_2000` | SRAM Bank 3 (For storing FIR filtered results) |
+| `32'h2000_0000` | `32'h8000_0000` | Passthrough to User Domain                     |
+| `32'h2000_0000` | `32'h2000_0400` | Reserved for User ROM text                     |
+| `32'h2000_0400` | `32'h2000_0490` | FIR Accelerator MM Registers                   |
 
-| Start Address   | Stop Address    | Description                                |
-|-----------------|-----------------|--------------------------------------------|
-| `32'h0000_0000` | `32'h0004_0000` | Debug module (JTAG)                        |
-| `32'h0200_0000` | `32'h0200_4000` | Bootrom                                    |
-| `32'h0204_0000` | `32'h0208_0000` | CLINT peripheral                           |
-| `32'h0300_0000` | `32'h0300_1000` | SoC control/info registers                 |
-| `32'h0300_2000` | `32'h0300_3000` | UART peripheral                            |
-| `32'h0300_5000` | `32'h0300_6000` | GPIO peripheral                            |
-| `32'h0300_A000` | `32'h0300_B000` | Timer peripheral                           |
-| `32'h0300_B000` | `32'h0300_C000` | (optional) DMA configuration               |
-| `32'h1000_0000` | `+SRAM_SIZE`    | Memory banks (SRAM)                        |
-| `32'h2000_0000` | `32'h8000_0000` | Passthrough to user domain                 |
-| `32'h2000_0000` | `32'h2000_1000` | reserved for user ROM text*                |
+## Memory Mapped (MMIO) Registers
 
-*If people modify Croc we suggest they add a ROM at this address containing additional information
-like the names of the developers, a project link or similar. This can then be written out via UART.  
-We ask people to format the ROM like a C string with zero termination and using ASCII encoding if feasible.  
-The [MLEM user ROM](https://github.com/pulp-platform/croc/blob/mlem-tapeout/rtl/user_domain/user_rom.sv) may serve as one possible reference implementation.
+| Offset      | Address                   | Access | Description                                     |
+| ----------- | ------------------------- | ------ | ----------------------------------------------- |
+| `0x00`      | `0x2000_0400`             | Write  | Start computation (write 1 to trigger)          |
+| `0x04`      | `0x2000_0404`             | Read   | Computation done flag (reads 1 when complete)   |
+| `0x08`      | `0x2000_0408`             | Write  | Total sample count (16-bit, valid range 36–540) |
+| `0x0C`      | `0x2000_040C`             | Read   | Invalid length flag (reads 1 on error)          |
+| `0x10–0x8C` | `0x2000_0410–0x2000_048C` | Write  | Filter coefficients c[0] – c[31]                |
+
 
 ## Flow
 
@@ -80,115 +81,109 @@ graph LR;
   OpenRoad-->KLayout;
 ```
 
-1. Bender provides a list of SystemVerilog files
-2. Yosys parses, elaborates, optimizes and maps the design to the technology cells
-3. The netlist, constraints and floorplan are loaded into OpenRoad for Place&Route
-4. The design as def is read by klayout and the geometry of the cells and macros are merged
-
-### Example Results
-
-|Cell/Module placement                      |  Routing                             |
-|:-----------------------------------------:|:------------------------------------:|
-|![Chip module view](doc/croc_modules.jpg)  |  ![Chip routed](doc/croc_routed.jpg) |
-
 ## Requirements
 
-We are using the excellent docker container maintained by Harald Pretl. If you get stuck with installing the tools, we urge you to check the [Tool Repository](https://github.com/iic-jku/IIC-OSIC-TOOLS).  
+Please refer to the excellent docker container maintained by Harald Pretl. 
+If you get stuck with installing the tools, we urge you to check the [Tool Repository](https://github.com/iic-jku/IIC-OSIC-TOOLS).  
 The current supported version is 2025.12, no other version is officially supported.
 
-### ETHZ systems
+## Benchmarking Kernels and RTL Simulation with Verilator
 
-ETHZ Design Center maintains an internal version of the IHP PDK, with integrations into all tools we have access to. For this reason if you work on the ETH systems it is recommended to use the `icdesign` tool (cockpit) instead of the liked Github repo.  
-You can directly create a cockpit directory inside the croc directory:
+The RTL files for the FIR Filter Accelerator are in `rtl/user_domain`.
+The modules are instantiated in `rtl/user_domain.sv`.
 
-```sh
-# Make sure you are in <somedir>/croc
-# the checked-out repository
-icdesign ihp13 -nogui
+The `test_fir_acc_sw.c` is the software implementation kernel for computing the FIR filtered output samples on the Croc SoC baseline.
+
+To compile the software binaries and generate the ELF
+1. Go to `sw/`
+2. Run `make`
+
+```bash
+cd sw
+make
 ```
 
-The setup is guided by the `.cockpitrc` configuration file. If you need different macros or another version of the standard cells you can change it accordingly.
+For running the software baseline kernel implementation:
+1. Go to `verilator/`
+2. Run `./run_verilator.sh --build --run ../sw/bin/test_fir_acc_sw.hex`
+3. To view the waveform: `gtkwave croc.fst &`
 
-Yyou may prefer to just enter a shell in the pre-installed osic-tools container using:
-
-```sh
-oseda bash
-# specific version eg: oseda -2025.12 bash
+```bash
+cd verilator
+./run_verilator.sh --build --run ../sw/bin/test_fir_acc_sw.hex
 ```
 
-## Getting started
+The `test_fir_acc_hw.c` is the kernel implementation for computing the FIR filtered output samples using the Hardware accelerator.
 
-The SoC is fully functional as-is and a simple software example is provided for simulation.
-To run the synthesis and place & route flow execute:
+For running the hardware-accelerated kernel implementation:
+1. Go to `verilator/`
+2. Run `./run_verilator.sh --build --run ../sw/bin/test_fir_acc_hw.hex`
+3. To view the waveform: `gtkwave croc.fst &`
 
-```sh
-git submodule update --init --recursive
-cd yosys && ./run_synthesis.sh --synth
-cd ../openroad && ./run_backend.sh --all
-cd ../klayout && ./run_finishing.sh --gds
+```bash
+cd verilator
+./run_verilator.sh --build --run ../sw/bin/test_fir_acc_hw.hex
+```
+## ASIC Design Flow
+
+### Synthesis
+
+Bender generates the source file list using the dependencies (Libraries) and sources (RTL files) listed in Bender.yml file. The RTL files in the source file list from Bender were synthesized with Yosys, to generate the gate-level netlist. The logic is mapped on to IHP SG13G2 130 nm Standard-cell library at the typical corner.
+
+```bash
+cd yosys/
+./run_synthesis.sh --synth
 ```
 
-To simulate you can use:
+### Physical Implementation
 
-```sh
-cd sw && make all
-cd ../verilator && ./run_verilator.sh --build --run ../sw/bin/helloworld.hex
+The gate-level netlist is taken through the physical implementation flow in OpenROAD, run from `openroad/` as five stages - Floor Planning & Power Grid Placement, Standard Cells Placement, Clock Tree Synthesis, Global and Detailed Routing, and finally Finishing (Filler cells and final output generation).
+
+Each stage writes out the design database in ODB format(OpenROAD Database) that the next one picks up, producing the final DEF file (croc.def) for DRC and LVS Checks. 
+
+```bash
+cd openroad/
+./run_backend.sh --floorplan
+./run_backend.sh --placement
+./run_backend.sh --cts
+./run_backend.sh --routing
+./run_backend.sh --finishing
 ```
 
-If you have Questasim/Modelsim, you can also run:
+### DRC & LVS Checks
 
-```sh
-cd vsim && ./run_vsim.sh --build --run ../sw/bin/helloworld.hex
+DRC checks were performed on KLayout tool.
+
+1. Navigate to `klayout/`
+2. Run `./def2gds-croc` to generate GDS from the DEF file generated by OpenROAD.
+3. Run `./start_klayout out/croc.gds` to open the GDS file on KLayout
+4. Run `./run_drc-croc` to perform the DRC check on the `croc.gds` file.
+
+```bash
+cd klayout/
+./def2gds-croc
+./start_klayout out/croc.gds
+./run_drc-croc
 ```
 
-All `run_` scripts have a `--help` you can use to orient yourself.
+LVS checks were performed on the Calibre tool from Siemens, since there were no Open Source options available for LVS.
 
-### Building on Croc
+Note: Calibre is a licensed tool. The rest of the flow uses open source tools.
 
-To add your own design, we recommend creating a new directory under `rtl/` or put single source files (small designs) into `rtl/user_domain`, then go into `Bender.yml` and add the files in the indicated places.
-This will make Bender aware of the files and any script it contains will contain your design as well.
+1. Navigate to `calibre/`
+2. Run `./start_calibre` to initiate the software
+3. Open the DRC free GDS file: File → Open Layout Files → `klayout/out/croc.gds`
+4. Open a new terminal window
+5. Go to `calibre/lvs`
+6. Run `./verilog2spice ../../openroad/out/croc_lvs.v croc_chip.spice`
+7. In the Calibre DRV main window, select `Verification → nmLVS`
+8. Select the correct GDS file under the Layout section. Select the correct SPICE file under the Inputs section.
+9. Click on the `RUN LVS` to run LVS.
 
-Then re-generate the default synthesis file-list:
-
-```sh
-cd yosys && ./run_synthesis.sh --flist
-cd ../verilator && ./run_verilator.sh --flist
-```
-
-If you want to add an existing design and it already containts a `Bender.yml` in its repository, you can add it as a dependency in the `Bender.yml` and reading the guide below.
-
-## Bender
-
-The dependency manager [Bender](https://github.com/pulp-platform/bender) is used in most pulp-platform IPs.
-Usually each dependency would be in a seperate repository, each with a `Bender.yml` file to describe where the RTL files are, how you can use this dependency and which additional dependency it has.
-In the top level repository (like this SoC) you also have a `Bender.yml` file but you will commonly find a `Bender.lock` file. It contains the resolved tree of dependencies with specific commits for each. Whenever you run a command using Bender, this is the file it uses to figure out where things are.
-
-Below is a small guide aimed at the usecase for this project. The Bender repo has a more extensive [Command Guide](https://github.com/pulp-platform/bender?tab=readme-ov-file#commands).
-
-### Checkout
-
-Using the command `bender checkout` Bender will check the lock file and download the specified commits from the repositories (usually into a hidden `.bender` directory).
-
-### Update
-
-Running `bender update` on the other hand will resolve the entire tree again and re-generate the lock file (you usually have to resolve some version/revision conflicts if multiple things use the same dependency).
-
-**Remember:** always test everything again if you generate a new `Bender.lock`, it is the same as modifying RTL.
-
-### Local Versions
-
-For this repository, we use a subcommand called `bender vendor` together with the `vendor_package` section in `Bender.yml`.
-`bender vendor` can be used to Benderize arbitrary repositories with RTL in it. The dependencies are already 'checked out' into `rtl/<IP>`. Each file or directory from the repository is mapped to a local path in this repo.
-Fixes and changes to each IPs `rtl/<IP>/Bender.yml` are managed by `bender vendor` in `rtl/patches`.
-
-If you need to update a dependency or map another file you need to edit the coresponding `vendor_package` section in `Bender.yml` and then run `bender vendor init`. Then you might need to change `rtl/<IP>/Bender.yml` to list your new file in the sources. 
-To save a fix/change as a patch, stage it in git and then run `bender vendor patch`. When prompted, add a commit message (this is used as the patches file name). Finally, commit both the patch file and the new `rtl/<IP>`.
-
-**Note:** using `bender vendor` in this repository to change the local versions of the IPs requires an up-to-date version of Bender. (v0.28.2 or newer)
-
-### Targets
-
-Another thing we use are targets (in the `Bender.yml`), together they build different views/contexts of your RTL. For example without defining any targets the technology independent cells/memories are used (in `rtl/tech_cells_generic/`) but if we use the target `ihp13` then the same modules contain a technology-specific implementation (in `ihp13/`). Similar contexts are built for different simulators and other things.
+The design was thoroughly verified to be DRC and LVS free. Should any DRC or LVS issues arise, they can be resolved by:
+ 
+1. Manually drawing the necessary shapes / extensions / connections 
+2. Modifying the placement, routing, CTS backend scripts using available OpenROAD commands (Refer to OpenROAD Documentation: https://openroad.readthedocs.io/en/latest/)
 
 ## License
 
