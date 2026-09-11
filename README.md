@@ -1,26 +1,34 @@
 # CrocFIRe: A 32-Tap FIR Filter Accelerator for Croc SoC
 
+<p align="justify">
 This project focuses on the design, integration and physical implementation of a hardware-accelerated 32-tap FIR Filter Accelerator on the Croc SoC, developed as a part of the VLSI II course at ETH Zurich. The baseline design was extended by integrating a parameterizable FIR filter accelerator into the user domain, supporting 1, 2, 4, 8 and 16 parallel MAC units. The accelerator implements a blocked FIR architecture operating on signed 8-bit signal samples with Q0.7 fixed-point coefficients, communicating with the Croc using the Open Bus Interface (OBI). The repository covers the RTL design, verification, testing, and the backend physical implementation, culminating in a DRC-LVS clean tape out ready chip.
+</p>
 
 <p align="center">
   <img src="doc/Final_Chip.png" alt="Chip module view" width="500">
 </p>
 
+<p align="justify">
 For a detailed discussion of the architecture, design trade-offs and PPA analysis across the 1/2/4/8/16 MAC configurations, see the [CrocFIRe Design Report](CrocFIRe_Design_Report.pdf).
-
+</p>
 
 ## FIR Accelerator Integration with Croc System-on-Chip
 
-
+<p align="justify">
 Croc is a simple SoC for education using PULP IPs developed as part of the PULP project, a joint effort between ETH Zurich and the University of Bologna. Croc includes all scripts necessary to produce a nearly finished chip in [IHPs open-source 130nm technology](https://github.com/IHP-GmbH/IHP-Open-PDK/tree/main).
+</p>
 
+<p align="justify">
 For more information on the Croc SoC, the exact code and scripts can be found at: https://github.com/pulp-platform/croc
+</p>
 
 <p align="center">
   <img src="doc/Top_Level_Block_Diagram.png" alt="Chip module view" width="500">
 </p>
 
+<p align="justify">
 The figure above shows the updated Croc SoC architecture with the FIR accelerator integrated into the user domain. The accelerator interfaces with the rest of the SoC through two OBI ports. The subordinate (SBR) OBI port allows the CVE2 core to configure the accelerator by writing to its memory-mapped registers, including the number of input samples, filter coefficients, and the start signal, and to poll the done status register upon completion. The manager (MGR) OBI port allows the accelerator to autonomously fetch signal samples from SRAM Bank 2 and write computed results to SRAM Bank 3, without CPU involvement after initial configuration. Within the user domain, an address decoder distributes incoming transactions to the FIR accelerator, the User ROM, or a default error subordinate for unmapped accesses.
+</p>
 
 ## FIR Filter Accelerator Architecture
 
