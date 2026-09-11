@@ -37,14 +37,17 @@ The figure above shows the updated Croc SoC architecture with the FIR accelerato
 </p>
 
 The SoC is composed of two main parts:
-
+<p align="justify">
 - The `croc_domain` containing a CVE2 core (a more minimal fork of Ibex), SRAM, an OBI crossbar and a few simple peripherals
 - The `user_domain` where students are invited to add their own designs or other open-source designs (peripherals, accelerators...)
+</p>
 
 The main interconnect is OBI, you can find [the spec online](https://github.com/openhwgroup/obi/blob/072d9173c1f2d79471d6f2a10eae59ee387d4c6f/OBI-v1.6.0.pdf).
 
+<p align="justify">
 The various IPs of the SoC (UART, OBI, debug-module, timer...) come from other PULP repositories and are managed by [Bender](https://github.com/pulp-platform/bender).
 To make it easier to browse and understand, only used or important building blocks are included in `rtl/<IP>`. You may want to explore the repositories of the respective IPs to find their documentation or additional functionality, the urls are in `Bender.yml`.
+</p>
 
 ## Bootmodes
 
@@ -52,10 +55,11 @@ Currently the only way to boot is via JTAG.
 
 ## Memory Map
 
+<p align="justify">
 The table below presents the complete SoC memory map including both the original Croc peripherals and the
 additions made in this project. Two additional SRAM banks were added to support the accelerator: Bank 2
-at 0x10001000 to 0x10001800 for input signal samples and Bank 3 at 0x10001800 to 0x10002000 for computed output results. The FIR accelerator’s Memory-Mapped (MM) registers are accessible at 0x20000400,
-and the User ROM at 0x20000000.
+at 0x10001000 to 0x10001800 for input signal samples and Bank 3 at 0x10001800 to 0x10002000 for computed output results. The FIR accelerator’s Memory-Mapped (MM) registers are accessible at 0x20000400, and the User ROM at 0x20000000.
+</p>
 
 | Start Address   | Stop Address    | Description                                    |
 | --------------- | --------------- | ---------------------------------------------- |
@@ -97,9 +101,9 @@ graph LR;
 
 ## Requirements
 
-Please refer to the excellent docker container maintained by Harald Pretl. 
-If you get stuck with installing the tools, we urge you to check the [Tool Repository](https://github.com/iic-jku/IIC-OSIC-TOOLS).  
-The current supported version is 2025.12, no other version is officially supported.
+<p align="justify">
+Please refer to the excellent docker container maintained by Harald Pretl. If you get stuck with installing the tools, we urge you to check the [Tool Repository](https://github.com/iic-jku/IIC-OSIC-TOOLS). The current supported version is 2025.12, no other version is officially supported.
+</p>
 
 ## Benchmarking Kernels and RTL Simulation with Verilator
 
@@ -141,8 +145,9 @@ cd verilator
 ## ASIC Design Flow
 
 ### Synthesis
-
+<p align="justify">
 Bender generates the source file list using the dependencies (Libraries) and sources (RTL files) listed in Bender.yml file. The RTL files in the source file list from Bender were synthesized with Yosys, to generate the gate-level netlist. The logic is mapped on to IHP SG13G2 130 nm Standard-cell library at the typical corner.
+</p>
 
 ```bash
 cd yosys/
@@ -150,10 +155,11 @@ cd yosys/
 ```
 
 ### Physical Implementation
-
+<p align="justify">
 The gate-level netlist is taken through the physical implementation flow in OpenROAD, run from `openroad/` as five stages - Floor Planning & Power Grid Placement, Standard Cells Placement, Clock Tree Synthesis, Global and Detailed Routing, and finally Finishing (Filler cells and final output generation).
 
 Each stage writes out the design database in ODB format(OpenROAD Database) that the next one picks up, producing the final DEF file (croc.def) for DRC and LVS Checks. 
+</p>
 
 ```bash
 cd openroad/
@@ -200,5 +206,6 @@ The design was thoroughly verified to be DRC and LVS free. Should any DRC or LVS
 2. Modifying the placement, routing, CTS backend scripts using available OpenROAD commands (Refer to OpenROAD Documentation: https://openroad.readthedocs.io/en/latest/)
 
 ## License
-
+<p align="justify">
 Unless specified otherwise in the respective file headers, all code checked into this repository is made available under a permissive license. All hardware sources and tool scripts are licensed under the Solderpad Hardware License 0.51 (see `LICENSE.md`). All software sources are licensed under Apache 2.0.
+</p>
