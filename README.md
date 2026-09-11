@@ -1,6 +1,6 @@
 # CrocFIRe: A 32-Tap FIR Filter Accelerator for Croc SoC
 
-This project focuses on the design, integration and physical implementation of a hardware-accelerated 32-tap FIR Filter Accelerator on the Croc SoC, developed as a part of the VLSI II course at ETH Zurich. The baseline design was extended by integrating a parameterizable FIR filter accelerator into the user domain, supporting 1, 2, 4, 8 and 16 parallel MAC units. The accelerator implements a blocked FIR architecture operating on signed 8-bit signal samples with Q0.7 fixed-point coefficients, communicating with the Croc using the Open Bus Interface (OBI). The repository covers the RTL design, verification, testing, and the backend physical implementation, culminating in a DRC-free tape out ready chip.
+This project focuses on the design, integration and physical implementation of a hardware-accelerated 32-tap FIR Filter Accelerator on the Croc SoC, developed as a part of the VLSI II course at ETH Zurich. The baseline design was extended by integrating a parameterizable FIR filter accelerator into the user domain, supporting 1, 2, 4, 8 and 16 parallel MAC units. The accelerator implements a blocked FIR architecture operating on signed 8-bit signal samples with Q0.7 fixed-point coefficients, communicating with the Croc using the Open Bus Interface (OBI). The repository covers the RTL design, verification, testing, and the backend physical implementation, culminating in a DRC-LVS clean tape out ready chip.
 
 <p align="center">
   <img src="doc/Final_Chip.png" alt="Chip module view" width="500">
